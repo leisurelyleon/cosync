@@ -51,5 +51,5 @@ Open the page in two tabs — type in one, watch it sync to the other.
 
 - [x] Authoritative WebSocket server
 - [x] Live document sync + presence
-- [ ] Deployed (Fly.io + Vercel)
-- [ ] Live cursors / CRDT merge (ADR 0003)
+- [x] Deployed (Fly.io + Vercel)
+- [x] Live cursors / CRDT merge (ADR 0003)
