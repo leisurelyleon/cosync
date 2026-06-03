@@ -1,0 +1,16 @@
+app = "cosync-yourname"     # must be globally unique — change "yourname"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"     # KEEP ALWAYS-ON — see note below
+  auto_start_machines = true
+  min_machines_running = 1       # at least one machine stays up
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
