@@ -57,7 +57,11 @@ impl Room {
     pub fn add_participant(&mut self, id: String, name: String) -> Participant {
         let color = PALETTE[self.next_color % PALETTE.len()].to_string();
         self.next_color = self.next_color.wrapping_add(1);
-        let p = Participant { id: id.clone(), name, color };
+        let p = Participant {
+            id: id.clone(),
+            name,
+            color,
+        };
         self.participants.insert(id, p.clone());
         p
     }

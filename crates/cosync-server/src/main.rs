@@ -12,10 +12,7 @@ mod state;
 use std::net::SocketAddr;
 
 use axum::{
-    extract::{
-        ws::WebSocketUpgrade,
-        Path, State,
-    },
+    extract::{ws::WebSocketUpgrade, Path, State},
     response::IntoResponse,
     routing::get,
     Router,

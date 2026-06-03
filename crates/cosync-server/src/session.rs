@@ -40,11 +40,7 @@ pub async fn handle_socket(socket: WebSocket, room_id: String, state: AppState) 
     };
 
     // Send the welcome snapshot directly to this client.
-    if sink
-        .send(Message::Text(serialize(&welcome)))
-        .await
-        .is_err()
-    {
+    if sink.send(Message::Text(serialize(&welcome))).await.is_err() {
         cleanup(&state, &room_id, &client_id);
         return;
     }
