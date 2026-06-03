@@ -5,11 +5,9 @@ import type { ClientMessage, ServerMessage } from "@/lib/protocol";
 import type { ConnectionStatus, Participant } from "@/lib/types";
 
 /**
- * Connect to the cosync server for a given room and keep the shared document
- * + presence roster in sync.
- *
- * The WebSocket URL comes from NEXT_PUBLIC_WS_URL (e.g. wss://app.fly.dev).
- * In local dev it defaults to the :8080 server over plain ws://.
+ * Connect to the cosync server for a room and keep the shared document +
+ * presence roster in sync. URL comes from NEXT_PUBLIC_WS_URL (e.g.
+ * wss://app.fly.dev); defaults to ws://localhost:8080 for non-Codespaces local.
  */
 export function useCosync(room: string, name: string) {
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
@@ -18,16 +16,10 @@ export function useCosync(room: string, name: string) {
   const [clientId, setClientId] = useState<string | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
-  // Guards against echoing a server doc-update straight back as a new edit,
-  // and against React 18 Strict Mode's intentional double-mount in dev.
-  const closingRef = useRef(false);
   const lastSentRef = useRef<string>("");
 
   useEffect(() => {
-    closingRef.current = false;
-
-    const base =
-      process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8080";
+    const base = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8080";
     const url = `${base}/ws/${encodeURIComponent(room)}`;
 
     const ws = new WebSocket(url);
@@ -47,7 +39,6 @@ export function useCosync(room: string, name: string) {
       } catch {
         return; // ignore anything that isn't valid JSON
       }
-
       switch (msg.type) {
         case "welcome":
           setClientId(msg.client_id);
@@ -56,7 +47,6 @@ export function useCosync(room: string, name: string) {
           setParticipants(msg.participants);
           break;
         case "doc":
-          // Adopt the authoritative content from the server.
           setContent(msg.content);
           lastSentRef.current = msg.content;
           break;
@@ -66,25 +56,31 @@ export function useCosync(room: string, name: string) {
       }
     };
 
+    // Only report a drop if THIS socket is still the active one — guards against
+    // Strict Mode's mount/cleanup/mount cycle flashing "Disconnected" when the
+    // first, intentionally-discarded socket closes.
     ws.onclose = () => {
-      // Only show "closed" for an unexpected drop, not our own cleanup.
-      if (!closingRef.current) setStatus("closed");
+      if (socketRef.current === ws) setStatus("closed");
     };
-
     ws.onerror = () => {
-      if (!closingRef.current) setStatus("closed");
+      if (socketRef.current === ws) setStatus("closed");
     };
 
     return () => {
-      closingRef.current = true;
+      // Clear the ref and detach handlers before closing, so the impending
+      // close can't mutate state for a socket we're deliberately tearing down.
+      if (socketRef.current === ws) socketRef.current = null;
+      ws.onopen = null;
+      ws.onclose = null;
+      ws.onerror = null;
+      ws.onmessage = null;
       ws.close();
-      socketRef.current = null;
     };
   }, [room, name]);
 
-  /** Send a local edit to the server (which will broadcast it back). */
+  /** Send a local edit to the server (which broadcasts it back). */
   const sendEdit = useCallback((next: string) => {
-    setContent(next); // optimistic local update for a responsive feel
+    setContent(next); // optimistic local update for responsiveness
     const ws = socketRef.current;
     if (ws && ws.readyState === WebSocket.OPEN && next !== lastSentRef.current) {
       lastSentRef.current = next;
